@@ -12,7 +12,8 @@ from src.data_sources.global_markets import CRYPTOS, CRYPTO_CATEGORIES
 from src.data_sources.stock_info import fetch_stock_profile
 from src.data_sources.yahoo_market_data import fetch_yahoo_history
 from src.database.repositories import (
-    get_research_report, list_research_reports, list_watchlist, save_research_report,
+    delete_research_reports, get_research_report, list_research_reports,
+    list_watchlist, save_research_report,
 )
 from src.reports.report_generator import generate_report
 from src.services.scoring_service import get_stock_score
@@ -49,7 +50,7 @@ st.markdown(
     </style>""",
     unsafe_allow_html=True,
 )
-st.title("自动分析报告")
+st.title("基础分析报告")
 st.markdown(
     '<div class="report-intro">选择 A 股、Crypto 或美股生成结构化研究报告；A 股报告含财务评分，其他市场提供技术面与风险观察。</div>',
     unsafe_allow_html=True,
@@ -235,7 +236,13 @@ else:
         "total_score": "综合评分", "confidence": "可信度", "created_at": "生成时间",
     })
     st.dataframe(history_display, hide_index=True, width="stretch")
-    selected_id = st.selectbox("选择历史报告", history["id"].tolist(), format_func=lambda value: f"报告 #{value}")
+    history_version = st.session_state.get("report_history_version", 0)
+    selected_id = st.selectbox(
+        "选择历史报告",
+        history["id"].tolist(),
+        format_func=lambda value: f"报告 #{value}",
+        key=f"report_history_selected_{history_version}",
+    )
     selected_report = get_research_report(int(selected_id))
     if selected_report:
         st.download_button(
@@ -250,6 +257,7 @@ else:
         compare_ids = st.multiselect(
             "选择两份报告进行对比", history["id"].tolist(), max_selections=2,
             format_func=lambda value: f"报告 #{value}",
+            key=f"report_history_compare_{history_version}",
         )
         if len(compare_ids) == 2:
             compare = history[history["id"].isin(compare_ids)].sort_values("created_at")
@@ -272,3 +280,31 @@ else:
                     "--",
                 ],
             }), hide_index=True, width="stretch")
+    delete_ids = st.multiselect(
+        "选择要删除的历史报告（可多选）",
+        history["id"].tolist(),
+        format_func=lambda value: (
+            f"报告 #{value} · "
+            f"{history.loc[history['id'] == value, 'symbol'].iloc[0]} · "
+            f"{history.loc[history['id'] == value, 'trade_date'].iloc[0]}"
+        ),
+        key=f"report_history_delete_{history_version}",
+    )
+    confirm_delete = st.checkbox(
+        f"确认永久删除所选的 {len(delete_ids)} 份报告",
+        disabled=not delete_ids,
+        key=f"confirm_delete_reports_{history_version}",
+    )
+    if st.button(
+        "删除所选报告",
+        type="secondary",
+        icon=":material/delete:",
+        disabled=not delete_ids or not confirm_delete,
+        key=f"delete_selected_reports_{history_version}",
+    ):
+        deleted_count = delete_research_reports([int(report_id) for report_id in delete_ids])
+        if deleted_count:
+            st.session_state["report_history_version"] = history_version + 1
+            st.success(f"已删除 {deleted_count} 份历史报告。")
+            st.rerun()
+        st.error("所选历史报告不存在或已被删除，请刷新列表后重试。")

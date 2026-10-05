@@ -1,16 +1,15 @@
 from datetime import datetime
 from zoneinfo import ZoneInfo
 
-import plotly.graph_objects as go
 import pandas as pd
 import streamlit as st
-from plotly.subplots import make_subplots
 
 from src.analysis.crypto_opportunities import scan_crypto_opportunities
 from src.data_sources.crypto_market_data import fetch_crypto_history
 from src.data_sources.global_markets import (
     CRYPTOS, CRYPTO_CATEGORIES, search_crypto_symbols,
 )
+from src.services.market_chart import create_market_chart
 from src.services.watchlist_service import add_watchlist
 
 
@@ -157,25 +156,19 @@ if payload:
     cols[2].metric("历史最高", f"{history['high'].max():,.6f} USDT")
     cols[3].metric("历史最低", f"{history['low'].min():,.6f} USDT")
 
-    figure = make_subplots(rows=2, cols=1, shared_xaxes=True,
-                           vertical_spacing=.04, row_heights=[.72, .28])
-    figure.add_trace(go.Candlestick(
-        x=history["date"], open=history["open"], high=history["high"],
-        low=history["low"], close=history["close"], name="日线",
-        increasing_line_color="#fb7185", decreasing_line_color="#34d399",
-        increasing_fillcolor="#fb7185", decreasing_fillcolor="#34d399",
-    ), row=1, col=1)
-    figure.add_trace(go.Bar(
-        x=history["date"], y=history["volume"], name="成交量",
-        marker_color="#38bdf8", opacity=.55,
-    ), row=2, col=1)
-    figure.update_layout(
-        height=650, template="plotly_dark", dragmode="pan",
-        hovermode="x unified", margin=dict(l=8, r=8, t=22, b=8),
-        xaxis_rangeslider_visible=False,
+    selected_ma = st.multiselect(
+        "均线显示",
+        ["MA5", "MA10", "MA20", "MA60"],
+        default=["MA5", "MA10", "MA20", "MA60"],
+        key="crypto_selected_ma",
     )
-    figure.update_yaxes(title_text="价格（USDT）", row=1, col=1)
-    figure.update_xaxes(rangeslider_visible=False, row=2, col=1)
+    figure = create_market_chart(
+        history,
+        selected_ma,
+        price_axis_title="价格（USDT）",
+        up_color="#fb7185",
+        down_color="#34d399",
+    )
     st.plotly_chart(figure, width="stretch", config={
         "scrollZoom": True, "displaylogo": False, "doubleClick": "reset",
     })

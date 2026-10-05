@@ -21,7 +21,7 @@ st.markdown(
 )
 st.markdown(
     '<div class="market-hero"><div class="market-eyebrow">GLOBAL MARKETS</div>'
-    '<h1>市场观察</h1><p>全球主要指数与主流数字资产，一屏掌握跨市场变化。</p></div>',
+    '<h1>市场总览</h1><p>全球主要指数与主流数字资产，一屏掌握跨市场变化。</p></div>',
     unsafe_allow_html=True,
 )
 
@@ -36,10 +36,10 @@ def _format_quote_price(value: float) -> str:
 
 refresh_col, time_col = st.columns([1, 4], vertical_alignment="center")
 with refresh_col:
-    refresh = st.button("刷新行情", type="primary", icon=":material/refresh:")
+    refresh = st.button("刷新数据", type="primary", icon=":material/refresh:")
 
 if refresh:
-    with st.spinner("正在并发获取全球指数与 Crypto 行情..."):
+    with st.spinner("正在并发获取全球指数与 Crypto 数据..."):
         index_quotes, index_errors = fetch_global_market_quotes()
         crypto_quotes, crypto_errors = fetch_global_crypto_quotes()
     st.session_state["market_index_quotes"] = index_quotes
@@ -52,7 +52,7 @@ if refresh:
 
 with time_col:
     updated_at = st.session_state.get("all_markets_updated_at")
-    st.caption(f"最近检查行情（北京时间）：{updated_at or '尚未获取'} · 数据可能延迟")
+    st.caption(f"本次刷新时间（北京时间）：{updated_at or '尚未刷新'} · 数据可能延迟")
 
 indices = st.session_state.get("market_index_quotes")
 cryptos = st.session_state.get("market_crypto_quotes")
@@ -63,7 +63,7 @@ def _render_quotes(
     frame: pd.DataFrame | None, errors: list[str], unit: str, is_crypto: bool = False,
 ) -> None:
     if frame is None:
-        st.info("点击“刷新全部市场”获取行情。")
+        st.info("点击“刷新数据”获取最新市场总览。")
         return
     if frame.empty:
         st.warning("暂时没有获取到行情。请稍后刷新，或检查网络连接。")
@@ -147,14 +147,34 @@ def _render_quotes(
             format_config[latest_column] = "{:,.2f}"
         if unit:
             format_config.pop(change_column, None)
+        column_config = {
+            latest_column: st.column_config.NumberColumn(
+                latest_column, format="%.2f", alignment="left"
+            ),
+            change_pct_column: st.column_config.NumberColumn(
+                change_pct_column, format="%+.2f%%", alignment="left"
+            ),
+        }
+        if unit:
+            column_config[latest_column] = st.column_config.TextColumn(
+                latest_column, alignment="left"
+            )
+            column_config[change_column] = st.column_config.TextColumn(
+                change_column, alignment="left"
+            )
+        else:
+            column_config[change_column] = st.column_config.NumberColumn(
+                change_column, format="%+,.2f", alignment="left"
+            )
         st.dataframe(
             display.style.format(format_config).map(
                 lambda value: "color: #fb7185; font-weight: 650" if value > 0
                 else "color: #34d399; font-weight: 650" if value < 0 else "",
                 subset=[change_pct_column],
-            ),
+            ).set_properties(**{"text-align": "left"}),
             hide_index=True,
             width="stretch",
+            column_config=column_config,
         )
     if errors:
         st.warning("部分市场数据暂不可用：" + "；".join(errors))
@@ -167,7 +187,7 @@ with tab_indices:
 with tab_crypto:
     st.info(
         "Crypto 全天候交易（24/7），没有开盘或收盘时段。此处展示公开接口的最近日线及"
-        "相对前一根日线的涨跌，不是实时滚动 24 小时涨跌；点击“刷新行情”手动获取，数据可能延迟。"
+        "相对前一根日线的涨跌，不是实时滚动 24 小时涨跌；点击“刷新数据”手动获取，数据可能延迟。"
     )
     st.caption(
         "覆盖 BTC、ETH、USDT、BNB、XRP、SOL 等主流币种；报价单位为 USDT，"

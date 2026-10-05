@@ -153,6 +153,23 @@ def get_research_report(report_id: int) -> dict | None:
     return dict(row) if row else None
 
 
+def delete_research_report(report_id: int) -> bool:
+    return delete_research_reports([report_id]) == 1
+
+
+def delete_research_reports(report_ids: list[int]) -> int:
+    if not report_ids:
+        return 0
+    unique_ids = list(dict.fromkeys(int(report_id) for report_id in report_ids))
+    placeholders = ", ".join("?" for _ in unique_ids)
+    with get_connection() as conn:
+        cursor = conn.execute(
+            f"DELETE FROM research_reports WHERE id IN ({placeholders})",
+            unique_ids,
+        )
+        return cursor.rowcount
+
+
 def save_research_alerts(alerts: list[dict]) -> None:
     if not alerts:
         return

@@ -1,10 +1,10 @@
 import re
 
-import plotly.graph_objects as go
 import streamlit as st
-from plotly.subplots import make_subplots
 
 from src.services.watchlist_service import add_watchlist, list_watchlist
+from src.services.market_stock_scanner import render_market_stock_scanner
+from src.services.market_chart import create_market_chart
 from src.data_sources.yahoo_market_data import fetch_yahoo_history
 from src.utils.market_hours import get_us_market_status
 
@@ -38,6 +38,7 @@ with status_col:
     _render_us_market_clock()
 st.caption("状态按美东时间常规工作日交易时段估算；美国节假日可能与实际交易日历不同。")
 st.caption("查看热门美股或输入代码查询日线行情。价格单位按交易所返回货币显示。")
+render_market_stock_scanner("美股")
 with st.form("us_stock_research_form", border=True):
     col_ticker, col_period, col_action = st.columns([3, 2, 1], vertical_alignment="bottom")
     with col_ticker:
@@ -116,30 +117,20 @@ if payload:
     cols[2].metric("区间最高", f"{history['high'].max():,.2f}")
     cols[3].metric("区间最低", f"{history['low'].min():,.2f}")
 
-    figure = make_subplots(rows=2, cols=1, shared_xaxes=True,
-                           vertical_spacing=.04, row_heights=[.72, .28])
-    figure.add_trace(go.Candlestick(
-        x=history["date"], open=history["open"], high=history["high"],
-        low=history["low"], close=history["close"], name="日线",
-        increasing_line_color="#34d399", decreasing_line_color="#fb7185",
-        increasing_fillcolor="#34d399", decreasing_fillcolor="#fb7185",
-    ), row=1, col=1)
-    figure.add_trace(go.Bar(
-        x=history["date"], y=history["volume"], name="成交量",
-        marker_color="#38bdf8", opacity=.55,
-    ), row=2, col=1)
-    figure.update_layout(
-        height=650, template="plotly_dark", dragmode="pan",
-        hovermode="x unified", margin=dict(l=8, r=8, t=22, b=8),
-        xaxis_rangeslider_visible=False,
+    selected_ma = st.multiselect(
+        "均线显示",
+        ["MA5", "MA10", "MA20", "MA60"],
+        default=["MA5", "MA10", "MA20", "MA60"],
+        key="us_stock_selected_ma",
     )
-    figure.update_xaxes(
-        type="category",
-        rangeslider_visible=False,
-        row=1,
-        col=1,
+    figure = create_market_chart(
+        history,
+        selected_ma,
+        price_axis_title=f"价格（{currency}）",
+        up_color="#34d399",
+        down_color="#fb7185",
+        skip_weekends=True,
     )
-    figure.update_xaxes(type="category", rangeslider_visible=False, row=2, col=1)
     st.plotly_chart(figure, width="stretch", config={
         "scrollZoom": True, "displaylogo": False, "doubleClick": "reset",
     })

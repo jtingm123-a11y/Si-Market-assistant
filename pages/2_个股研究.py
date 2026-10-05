@@ -17,6 +17,7 @@ from src.database.repositories import (
 from src.data_sources.market_data import normalize_symbol
 from src.services.scoring_service import get_stock_score
 from src.services.stock_service import get_analysis, get_quote_source
+from src.services.market_stock_scanner import render_market_stock_scanner
 from src.utils.market_hours import get_a_share_market_status
 from src.utils.formatters import format_number
 
@@ -61,6 +62,7 @@ with title_col:
 with status_col:
     _render_market_clock()
 st.caption("状态按工作日常规交易时段判断；法定节假日可能与实际交易日历不同。")
+render_market_stock_scanner("A股")
 st.markdown(
     """<style>
     #MainMenu, header[data-testid="stHeader"], [data-testid="stToolbar"] {visibility: hidden; height: 0;}

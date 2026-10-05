@@ -7,7 +7,7 @@ initialize_database()
 
 
 st.set_page_config(
-    page_title="市场研究工作台",
+    page_title="Si Market助手",
     page_icon=":material/monitoring:",
     layout="wide",
     initial_sidebar_state="collapsed",
@@ -123,11 +123,22 @@ st.markdown(
 )
 
 page_links = [
-    (st.Page("pages/1_市场观察.py", title="市场观察", icon=":material/candlestick_chart:"), "市场观察"),
+    (
+        st.Page(
+            "pages/1_市场观察.py",
+            title="Market",
+            icon=":material/candlestick_chart:",
+        ),
+        "Market",
+    ),
+    (
+        st.Page("pages/8_市场资讯.py", title="资讯", icon=":material/newspaper:"),
+        "资讯",
+    ),
     (st.Page("pages/2_个股研究.py", title="A股", icon=":material/manage_search:"), "A股"),
     (st.Page("pages/5_crypto.py", title="Crypto", icon=":material/currency_bitcoin:"), "Crypto"),
     (st.Page("pages/6_us_stocks.py", title="美股", icon=":material/monitoring:"), "美股"),
-    (st.Page("pages/3_我的股票池.py", title="自选观察", icon=":material/bookmark:"), "自选观察"),
+    (st.Page("pages/3_我的股票池.py", title="自选", icon=":material/bookmark:"), "自选"),
     (st.Page("pages/4_研究报告.py", title="基础分析", icon=":material/description:"), "基础分析"),
     (st.Page("pages/7_si_intelligence.py", title="Si智能", icon=":material/auto_awesome:"), "Si智能"),
 ]
