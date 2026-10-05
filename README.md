@@ -75,25 +75,32 @@
 
 ## 安装和启动
 
-要求：Windows、Python 3.10 或更高版本。
+要求：Windows、Python 3.10 或更高版本，并确保 Python Launcher（`py`）或 `python` 命令可用。
 
-### PowerShell 启动
+### 推荐：一键启动
 
 ```powershell
 cd "C:\Users\admin\Desktop\AI股票助手"
 .\run_app.ps1
 ```
 
+首次启动时，脚本会自动创建 `.venv` 并安装 `requirements.txt` 中的依赖；以后启动会复用环境，仅当依赖清单变化时重新安装。请从 VS Code 或 PowerShell 终端运行，这样启动错误会留在终端中，不会像双击窗口那样一闪而过。
+
+如果 Windows 阻止脚本执行，可在 PowerShell 中使用当前进程级执行策略启动：
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\run_app.ps1
+```
+
 ### 手动启动
 
 ```powershell
-python -m venv .venv
-.\.venv\Scripts\Activate.ps1
-pip install -r requirements.txt
-streamlit run app.py
+py -3 -m venv .venv
+.\.venv\Scripts\python.exe -m pip install -r requirements.txt
+.\.venv\Scripts\python.exe -m streamlit run app.py
 ```
 
-在 VS Code 中应启动 Streamlit 应用，不要使用“运行 Python 文件”直接运行页面脚本。
+如果系统没有 `py` 命令，可将第一行的 `py -3` 替换为 `python`。Streamlit 依赖要求版本为 `>=1.57,<2.0`。在 VS Code 中应启动 Streamlit 应用，不要使用“运行 Python 文件”直接运行页面脚本。
 
 ## 使用说明
 
@@ -125,6 +132,7 @@ streamlit run app.py
 - Python 缓存和测试缓存
 
 项目已通过 `.gitignore` 忽略常见本地数据和敏感配置。
+从 GitHub 下载代码后，本地数据库和个人数据不会自动包含在下载内容中；若需迁移，请先关闭应用，再手动复制旧项目的 `data/stock_assistant.db` 到新项目的 `data` 目录。不要把个人数据库强制提交到公开仓库。
 
 ## 免责声明
 
