@@ -34,8 +34,8 @@ st.markdown(
             font-weight: 700; color: #F1F5F9;}
         .overview-change-details {font-size: .78rem; line-height: 1.35; margin-top: .25rem;
             font-weight: 500; white-space: nowrap;}
-        .overview-change-details .up {color: #F1F5F9 !important;}
-        .overview-change-details .down {color: #F1F5F9 !important;}
+        .overview-change-details .up {color: #F87171 !important;}
+        .overview-change-details .down {color: #34D399 !important;}
         .overview-change-details .flat {color: #F1F5F9 !important;}
         </style>
         <div class="hero">

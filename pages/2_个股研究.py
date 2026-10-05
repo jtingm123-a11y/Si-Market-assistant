@@ -17,7 +17,16 @@ from src.database.repositories import (
 from src.data_sources.market_data import normalize_symbol
 from src.services.scoring_service import get_stock_score
 from src.services.stock_service import get_analysis, get_quote_source
+from src.utils.market_hours import get_a_share_market_status
 from src.utils.formatters import format_number
+
+
+@st.fragment(run_every="30s")
+def _render_market_clock() -> None:
+    current, status = get_a_share_market_status()
+    color = "green" if status == "开盘中" else "blue" if status == "盘前" else "gray"
+    st.badge(status, color=color, icon=":material/schedule:")
+    st.caption(f"北京时间 {current:%Y-%m-%d %H:%M:%S}")
 
 
 def _compact_number(value: object) -> str:
@@ -46,7 +55,12 @@ def _color_change(value: object) -> str:
     return "color: #F87171; font-weight: 700" if number > 0 else "color: #34D399; font-weight: 700"
 
 
-st.title("个股研究")
+title_col, status_col = st.columns([1, 4], vertical_alignment="center")
+with title_col:
+    st.title("A股研究")
+with status_col:
+    _render_market_clock()
+st.caption("状态按工作日常规交易时段判断；法定节假日可能与实际交易日历不同。")
 st.markdown(
     """<style>
     #MainMenu, header[data-testid="stHeader"], [data-testid="stToolbar"] {visibility: hidden; height: 0;}
@@ -57,7 +71,6 @@ st.markdown(
     [data-testid="stSidebarNav"] a:hover {background: #1B304B; color: #F1F5F9;}
     [data-testid="stSidebarNav"] a[aria-current="page"] {background: #2B4260; color: #FFFFFF;}
     [data-testid="stSidebarNav"] li:first-child a p {font-size: 0;}
-    [data-testid="stSidebarNav"] li:first-child a p:after {content: "首页"; font-size: 1.05rem;}
     .role-card {min-height: 118px; padding: 1rem; margin: .35rem 0;
         border: 1px solid #26364D; border-radius: 12px; background: #131E2F;}
     .role-title {font-weight: 700; color: #E5EDF8;}
@@ -164,7 +177,7 @@ if payload and payload["symbol"] == st.session_state.get("symbol"):
                 "trade_date": "日期", "category": "类型", "level": "级别", "message": "提醒内容",
             })
             st.dataframe(alert_display[["日期", "类型", "级别", "提醒内容"]],
-                         hide_index=True, use_container_width=True)
+                         hide_index=True, width="stretch")
     with st.container(border=True):
         st.subheader("支撑位与压力位")
         level_columns = st.columns(4, gap="small")
@@ -190,9 +203,26 @@ if payload and payload["symbol"] == st.session_state.get("symbol"):
         confidence_cols[2].metric("技术信号", f"{len(technical_signals)} 条", border=True)
         if score["missing_financial_data"]:
             st.warning("财务数据缺失，当前总分的可信度受到影响。")
-        st.bar_chart(pd.DataFrame(
-            {"得分": {name: section["score"] for name, section in score["sections"].items()}},
+        score_names = list(score["sections"])
+        score_values = [score["sections"][name]["score"] for name in score_names]
+        score_figure = go.Figure(go.Bar(
+            x=score_values,
+            y=score_names,
+            orientation="h",
+            text=[f"{value:.1f}" for value in score_values],
+            textposition="outside",
+            marker_color=["#60A5FA", "#34D399", "#A78BFA", "#FB923C"],
+            cliponaxis=False,
         ))
+        score_figure.update_layout(
+            height=max(200, 52 * len(score_names)),
+            template="plotly_dark",
+            margin=dict(l=10, r=30, t=12, b=12),
+            xaxis=dict(title="得分", rangemode="tozero", showgrid=True),
+            yaxis=dict(autorange="reversed"),
+            showlegend=False,
+        )
+        st.plotly_chart(score_figure, width="stretch", config={"displaylogo": False})
         if not history.empty:
             history = history.sort_values(["trade_date", "created_at"])
             latest = history.iloc[-1]
@@ -207,11 +237,11 @@ if payload and payload["symbol"] == st.session_state.get("symbol"):
             st.caption("最近评分记录")
             st.dataframe(history[["trade_date", "total", "confidence"]].rename(
                 columns={"trade_date": "行情日期", "total": "总分", "confidence": "可信度"}
-            ), hide_index=True, use_container_width=True)
+            ), hide_index=True, width="stretch")
     with st.container(border=True):
         st.subheader("技术信号")
         if technical_signals:
-            st.dataframe(pd.DataFrame(technical_signals), hide_index=True, use_container_width=True)
+            st.dataframe(pd.DataFrame(technical_signals), hide_index=True, width="stretch")
         else:
             st.info("暂无可识别的技术信号。")
         if not signal_history.empty:
@@ -219,7 +249,7 @@ if payload and payload["symbol"] == st.session_state.get("symbol"):
             st.dataframe(signal_history.rename(columns={
                 "trade_date": "行情日期", "category": "类型", "result": "信号",
                 "detail": "说明", "created_at": "记录时间",
-            }), hide_index=True, use_container_width=True)
+            }), hide_index=True, width="stretch")
     with st.container(border=True):
         st.subheader("趋势与量价结论")
         signal_columns = st.columns(3, gap="small")
@@ -232,7 +262,15 @@ if payload and payload["symbol"] == st.session_state.get("symbol"):
         for column, (label, value, detail) in zip(signal_columns, signal_values):
             with column:
                 st.metric(label, value, border=True)
-                st.caption(detail)
+                if label == "风险提示" and risk_metrics["drawdown_60d"] is not None:
+                    drawdown = risk_metrics["drawdown_60d"]
+                    detail_color = "#F87171" if drawdown > 0 else "#34D399" if drawdown < 0 else "#CBD5E1"
+                    st.markdown(
+                        f'<div style="color:{detail_color};font-size:.82rem">{detail}</div>',
+                        unsafe_allow_html=True,
+                    )
+                else:
+                    st.caption(detail)
     with st.container(border=True):
         st.subheader("风险指标")
         risk_columns = st.columns(4, gap="small")
@@ -244,8 +282,16 @@ if payload and payload["symbol"] == st.session_state.get("symbol"):
         ]
         for column, (label, value) in zip(risk_columns, risk_labels):
             with column:
-                text = "--" if value is None or pd.isna(value) else f"{value:+.2f}%"
-                st.metric(label, text, border=True)
+                if value is None or pd.isna(value):
+                    st.metric(label, "--", border=True)
+                else:
+                    st.metric(
+                        label,
+                        " ",
+                        delta=f"{value:+.2f}%",
+                        delta_color="inverse",
+                        border=True,
+                    )
 
     with st.container(border=True):
         st.subheader("行情 K 线")
@@ -385,7 +431,7 @@ if payload and payload["symbol"] == st.session_state.get("symbol"):
         chart_fig.update_yaxes(title_text="MACD", fixedrange=False, row=3, col=1)
         st.plotly_chart(
             chart_fig,
-            use_container_width=True,
+            width="stretch",
             config={
                 "scrollZoom": True,
                 "displaylogo": False,
@@ -446,12 +492,12 @@ if payload and payload["symbol"] == st.session_state.get("symbol"):
         st.dataframe(
             recent.style.map(_color_change, subset=["涨跌幅(%)"]),
             hide_index=True,
-            use_container_width=True,
+            width="stretch",
         )
     with financial_tab:
         if finance is not None:
             with st.container(border=True):
-                st.dataframe(finance, hide_index=True, use_container_width=True)
+                st.dataframe(finance, hide_index=True, width="stretch")
         else:
             st.info(f"财务数据暂不可用：{finance_error}", icon=":material/info:")
     with risk_tab:

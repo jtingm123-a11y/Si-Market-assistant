@@ -26,6 +26,7 @@ def initialize_database() -> None:
 
             CREATE TABLE IF NOT EXISTS watchlist (
                 symbol TEXT PRIMARY KEY,
+                market TEXT NOT NULL DEFAULT 'A股',
                 note TEXT DEFAULT '',
                 created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
             );
@@ -62,6 +63,7 @@ def initialize_database() -> None:
             CREATE TABLE IF NOT EXISTS research_reports (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 symbol TEXT NOT NULL,
+                market TEXT NOT NULL DEFAULT 'A股',
                 name TEXT,
                 trade_date TEXT,
                 total_score REAL,
@@ -81,4 +83,30 @@ def initialize_database() -> None:
                 created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
             );
             """
+        )
+        for table, column, declaration in (
+            ("watchlist", "market", "TEXT NOT NULL DEFAULT 'A股'"),
+            ("research_reports", "market", "TEXT NOT NULL DEFAULT 'A股'"),
+        ):
+            columns = {
+                row["name"] for row in conn.execute(f"PRAGMA table_info({table})")
+            }
+            if column not in columns:
+                conn.execute(f"ALTER TABLE {table} ADD COLUMN {column} {declaration}")
+        conn.execute(
+            """UPDATE watchlist SET market = 'Crypto'
+               WHERE symbol LIKE '%-USD' AND symbol GLOB '*[A-Za-z]*'"""
+        )
+        conn.execute(
+            """UPDATE research_reports SET market = 'Crypto'
+               WHERE symbol LIKE '%-USD' AND symbol GLOB '*[A-Za-z]*'"""
+        )
+        conn.execute(
+            """INSERT OR IGNORE INTO watchlist (symbol, market, note, created_at)
+               SELECT REPLACE(symbol, '-USD', '-USDT'), market, note, created_at
+               FROM watchlist WHERE market = 'Crypto' AND symbol LIKE '%-USD'"""
+        )
+        conn.execute(
+            """DELETE FROM watchlist
+               WHERE market = 'Crypto' AND symbol LIKE '%-USD'"""
         )

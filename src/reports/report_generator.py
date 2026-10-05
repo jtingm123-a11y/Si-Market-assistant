@@ -1,4 +1,5 @@
 from datetime import datetime
+from zoneinfo import ZoneInfo
 
 import pandas as pd
 
@@ -18,25 +19,42 @@ def _change_html(value: object) -> str:
     return f'<span style="color:{color};font-weight:700">{number:+.2f}%</span>'
 
 
-def generate_report(symbol: str, profile: dict, indicators: pd.DataFrame, score: dict | None = None) -> str:
+def generate_report(
+    symbol: str,
+    profile: dict,
+    indicators: pd.DataFrame,
+    score: dict | None = None,
+    market: str = "A股",
+    currency: str | None = None,
+) -> str:
     if indicators.empty:
         raise ValueError("没有可用于生成报告的行情数据。")
     last = indicators.iloc[-1]
     trade_date = pd.to_datetime(last["trade_date"]).strftime("%Y-%m-%d")
+    if market == "Crypto":
+        data_date_label = "日线数据日期（UTC）"
+        market_context = "Crypto 全天候交易（24/7），无开盘或收盘时段；以下行情为公开接口日线数据。"
+        close_description = "最近一根 UTC 日线收盘价格"
+        change_description = "相对前一根 UTC 日线收盘价的变化，不是滚动 24 小时收益率"
+    else:
+        data_date_label = "行情数据截止日"
+        market_context = ""
+        close_description = "最近一个交易日收盘价格"
+        change_description = "相比前一交易日的价格变化"
     signals = build_technical_signals(indicators)
     trend_signal = build_trend_signal(indicators)
     risk_metrics = build_risk_metrics(indicators)
     volume_signal = build_volume_signal(indicators)
     levels = build_support_resistance(indicators)
-    agent_views = build_agent_views(indicators, score or {"total": 0, "sections": {
-        "技术面": {"score": 0}, "财务面": {"score": 0},
-        "趋势强度": {"score": 0}, "风险指标": {"score": 0},
-    }})
     signal_lines = "\n".join(f"- {item['category']}：{item['result']}；{item['detail']}" for item in signals) or "- 暂无足够数据"
-    agent_lines = "\n".join(
-        f"- **{item['role']}｜{item['tag']}**：{item['summary']}{item['details']}"
-        for item in agent_views
-    )
+    if score:
+        agent_views = build_agent_views(indicators, score)
+        agent_lines = "\n".join(
+            f"- **{item['role']}｜{item['tag']}**：{item['summary']}{item['details']}"
+            for item in agent_views
+        )
+    else:
+        agent_lines = "- 本市场报告不计算综合评分或财务评价；以下结论仅基于公开日线数据和技术指标。"
     score_text = ""
     if score:
         sections = score.get("sections", {})
@@ -55,10 +73,10 @@ def generate_report(symbol: str, profile: dict, indicators: pd.DataFrame, score:
 
 - 趋势状态：{trend_signal['status']}；{trend_signal['detail']}
 - 量价关系：{volume_signal['status']}；{volume_signal['detail']}
-- 近 20 日涨跌：{format_number(risk_metrics['return_20d'])}%
-- 近 60 日涨跌：{format_number(risk_metrics['return_60d'])}%
+- 近 20 日涨跌：{_change_html(risk_metrics['return_20d'])}
+- 近 60 日涨跌：{_change_html(risk_metrics['return_60d'])}
 - 20 日日波动率：{format_number(risk_metrics['volatility_20d'])}%
-- 60 日最大回撤：{format_number(risk_metrics['drawdown_60d'])}%
+- 60 日最大回撤：{_change_html(risk_metrics['drawdown_60d'])}
 - 20 日支撑 / 压力：{format_number(levels['support_20'])} / {format_number(levels['resistance_20'])}
 - 60 日支撑 / 压力：{format_number(levels['support_60'])} / {format_number(levels['resistance_60'])}
 
@@ -68,16 +86,19 @@ def generate_report(symbol: str, profile: dict, indicators: pd.DataFrame, score:
         confidence_text = f"数据完整度：{score.get('data_completeness', 0):.1f}%；评分可信度：{score.get('confidence', '低')}。\n\n"
     return f"""# {profile.get('name', '--')}（{symbol}）研究报告
 
-> 报告生成时间：{datetime.now().strftime('%Y-%m-%d %H:%M')}  
-> 行情数据截止日：{trade_date}  
-> 数据源：公开行情接口；指标基于前复权日线计算。
+> 报告生成时间（北京时间）：{datetime.now(ZoneInfo("Asia/Shanghai")).strftime('%Y-%m-%d %H:%M')}<br>
+> {data_date_label}：{trade_date}<br>
+> 数据源：公开行情接口；指标基于日线 OHLCV 数据计算。
+{f"> 市场说明：{market_context}" if market_context else ""}
 
 ## 一、基本信息
 
-- 股票代码：{symbol}
-- 股票名称：{profile.get('name', '--')}
+- 市场：{market}
+- 标的代码：{symbol}
+- 标的名称：{profile.get('name', '--')}
 - 行业：{profile.get('industry', '--')}
 - 上市日期：{profile.get('listing_date', '--')}
+- 报价币种：{currency or '--'}
 
 ## 二、最新行情与关键指标
 
@@ -85,8 +106,8 @@ def generate_report(symbol: str, profile: dict, indicators: pd.DataFrame, score:
 
 | 指标 | 当前值 | 怎么理解 |
 |---|---:|---|
-| 收盘价 | {format_number(last.get('close'))} | 最近一个交易日收盘价格 |
-| 涨跌幅 | {_change_html(last.get('change_pct'))} | 相比前一交易日的价格变化 |
+| 收盘价 | {format_number(last.get('close'))} | {close_description} |
+| 涨跌幅 | {_change_html(last.get('change_pct'))} | {change_description} |
 | MA5 / MA20 / MA60 | {format_number(last.get('ma5'))} / {format_number(last.get('ma20'))} / {format_number(last.get('ma60'))} | 不同周期平均价格，辅助判断趋势 |
 | MACD（DIF / DEA / 柱） | {format_number(last.get('dif'))} / {format_number(last.get('dea'))} / {format_number(last.get('macd'))} | 判断趋势动能，柱值为正通常表示动能偏强 |
 | RSI(14) | {format_number(last.get('rsi14'))} | 观察短期强弱，数值越高代表近期越强 |

@@ -105,26 +105,40 @@ def load_signal_history(symbol: str, limit: int = 50) -> pd.DataFrame:
 
 
 def save_research_report(
-    symbol: str, name: str, trade_date: object, score: dict, report: str
+    symbol: str,
+    name: str,
+    trade_date: object,
+    score: dict | None,
+    report: str,
+    market: str = "A股",
 ) -> int:
     with get_connection() as conn:
         cursor = conn.execute(
             """INSERT INTO research_reports
-               (symbol, name, trade_date, total_score, confidence, report)
-               VALUES (?, ?, ?, ?, ?, ?)""",
-            (symbol, name, str(trade_date)[:10], score.get("total"),
-             score.get("confidence", "低"), report),
+               (symbol, market, name, trade_date, total_score, confidence, report)
+               VALUES (?, ?, ?, ?, ?, ?, ?)""",
+            (symbol, market, name, str(trade_date)[:10],
+             score.get("total") if score else None,
+             score.get("confidence", "低") if score else None, report),
         )
         return int(cursor.lastrowid)
 
 
-def list_research_reports(symbol: str | None = None, limit: int = 50) -> pd.DataFrame:
-    query = """SELECT id, symbol, name, trade_date, total_score, confidence, created_at
+def list_research_reports(
+    symbol: str | None = None, limit: int = 50, market: str | None = None
+) -> pd.DataFrame:
+    query = """SELECT id, symbol, market, name, trade_date, total_score, confidence, created_at
                FROM research_reports"""
+    filters = []
     params: tuple[object, ...] = ()
     if symbol:
-        query += " WHERE symbol = ?"
-        params = (symbol,)
+        filters.append("symbol = ?")
+        params += (symbol,)
+    if market:
+        filters.append("market = ?")
+        params += (market,)
+    if filters:
+        query += " WHERE " + " AND ".join(filters)
     query += " ORDER BY created_at DESC LIMIT ?"
     params += (limit,)
     with get_connection() as conn:
@@ -164,9 +178,13 @@ def list_research_alerts(symbol: str | None = None, limit: int = 100) -> pd.Data
         return pd.read_sql_query(query, conn, params=params)
 
 
-def add_watchlist(symbol: str, note: str = "") -> None:
+def add_watchlist(symbol: str, note: str = "", market: str = "A股") -> None:
     with get_connection() as conn:
-        conn.execute("INSERT OR REPLACE INTO watchlist(symbol, note) VALUES (?, ?)", (symbol, note))
+        conn.execute(
+            """INSERT INTO watchlist(symbol, market, note) VALUES (?, ?, ?)
+               ON CONFLICT(symbol) DO UPDATE SET market = excluded.market, note = excluded.note""",
+            (symbol, market, note),
+        )
 
 
 def remove_watchlist(symbol: str) -> None:
@@ -176,13 +194,16 @@ def remove_watchlist(symbol: str) -> None:
 
 def list_watchlist() -> pd.DataFrame:
     with get_connection() as conn:
-        return pd.read_sql_query("SELECT symbol, note, created_at FROM watchlist ORDER BY created_at DESC", conn)
+        return pd.read_sql_query(
+            "SELECT symbol, market, note, created_at FROM watchlist ORDER BY created_at DESC",
+            conn,
+        )
 
 
 def get_watchlist_snapshot() -> pd.DataFrame:
     """Return the newest cached quote for every watchlist stock."""
     query = """
-        SELECT w.symbol, w.note, w.created_at,
+        SELECT w.symbol, w.market, w.note, w.created_at,
                q.trade_date, q.close, q.change_pct, q.volume, q.amount, q.updated_at
         FROM watchlist AS w
         LEFT JOIN daily_quotes AS q
