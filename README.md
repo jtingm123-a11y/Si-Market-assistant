@@ -92,6 +92,18 @@ cd "C:\Users\admin\Desktop\AI股票助手"
 powershell -ExecutionPolicy Bypass -File .\run_app.ps1
 ```
 
+### 发布给不熟悉 Python 的用户
+
+维护者可在依赖可正常下载的 Windows x64 电脑上执行：
+
+```powershell
+.\build_portable.ps1
+```
+
+脚本会在发布者电脑上下载便携 Python、安装项目依赖并生成 `dist\A-Stock-Assistant-Windows-x64.zip`。将 ZIP 上传到 GitHub Releases；用户下载完整 ZIP、解压后双击 `run_portable.bat` 即可启动，无需安装 Python 或等待首次 pip 安装。发布包不会包含维护者本机的数据库、股票池、报告或密钥。
+
+打包阶段仍需联网下载 Python 和依赖；运行阶段不需要下载这些依赖，但在线行情与财务数据仍需要网络。发布包适用于 Windows x64。重新发布时上传新的 ZIP；用户应先备份解压目录里的 `data`，不要用旧版数据库覆盖新版用户数据。
+
 ### 手动启动
 
 ```powershell

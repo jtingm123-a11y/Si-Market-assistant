@@ -7,3 +7,5 @@ __pycache__/
 data/exports/*
 !data/exports/.gitkeep
 data/*.db
+build/
+dist/
