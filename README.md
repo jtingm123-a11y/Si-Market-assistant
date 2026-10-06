@@ -1,96 +1,52 @@
 # Si Market助手
 
-基于 Streamlit 的本地多市场研究工具，覆盖 A 股、Crypto 和美股，提供行情查看、技术指标、规则化分析、自选管理及研究报告。项目面向学习和研究，不构成投资建议。
+Si Market助手是使用 SI 编程开发的辅助投资研究助手，目前处于初级、持续开发阶段。现阶段提供市场行情、资讯、自选管理和研究报告等功能；后续计划接入 SI 模型能力，并根据实际使用情况持续迭代现有页面，逐步完善功能与体验。
 
-## 功能
+> 行情和分析来自公开数据，仅供学习和研究参考，不构成投资建议。
 
-- **市场总览**：查看全球主要指数和主流 Crypto；点击“刷新数据”获取最新市场总览。
-- **资讯**：按专题筛选公开新闻和政策资讯，支持来源筛选、关键词搜索及原文链接。
-- **A 股**：查询日线、财务和技术指标；扫描新浪财经公开榜单中的换手率活跃股和成交额靠前股。
-- **美股与 Crypto**：查询日线行情；图表可选择 MA5、MA10、MA20、MA60，并显示成交量和 MACD；支持各自的热门/异动扫描。
-- **自选**：管理 A 股、Crypto 和美股标的，查看及刷新行情。
-- **基础分析报告**：生成、下载、查看和对比报告；支持多选历史报告并在确认后删除。
+## 怎么启动
 
-行情来自公开数据源，可能延迟、限流或暂时不可用。扫描和分析结果仅供研究参考。
+### 下载 ZIP 的用户
 
-## Windows 启动
+1. 下载并解压完整 ZIP 文件。
+2. 双击 `run_portable.bat`。
+3. 浏览器打开后即可使用。使用期间不要关闭启动窗口；关闭窗口会停止应用。
 
-要求 Windows 和 Python 3.10 或更高版本。推荐在项目根目录用 PowerShell 启动：
+便携版已包含运行环境，不需要另外安装 Python。查看在线行情仍需联网。
+
+### 从源码运行
+
+需要 Windows 和 Python 3.10 或更高版本。在项目文件夹打开 PowerShell，运行：
 
 ```powershell
 .\run_app.ps1
 ```
 
-脚本会自动建立 `.venv` 并安装依赖。若执行策略阻止运行：
+首次启动会自动准备运行环境和依赖。若 Windows 阻止脚本运行：
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File .\run_app.ps1
 ```
 
-也可手动创建环境并启动：
+## 页面怎么用
 
-```powershell
-py -3 -m venv .venv
-.\.venv\Scripts\python.exe -m pip install -r requirements.txt
-.\.venv\Scripts\python.exe -m streamlit run app.py
-```
+- **Market**：点击“刷新数据”查看全球指数和主流 Crypto 总览。
+- **资讯**：选择一个专题，可按来源或关键词筛选；点击标题查看原文。
+- **A股、美股、Crypto**：搜索或选择标的，点击“查询行情”查看走势。图表可选择均线，也可查看成交量和 MACD。
+- **A股和美股**：使用页面中的“热门与异动扫描”查看活跃标的；扫描结果可加入自选。
+- **自选**：集中查看和管理已保存的标的。
+- **基础分析**：选择市场和标的生成报告；历史报告可以查看、对比或勾选后删除。
 
-## Windows 便携版
+## 数据和备份
 
-在 Windows x64、可下载 Python 和依赖的环境中构建：
+个人数据保存在项目或解压目录中的 `data` 文件夹，包括自选和历史报告。升级前先关闭应用，并复制整个 `data` 文件夹到安全位置；使用新版时不要覆盖已有的 `data` 文件夹。
 
-```powershell
-.\build_portable.ps1
-```
+公开数据源可能延迟或暂时不可用。若页面暂时没有数据，可稍后再刷新。
 
-构建完成后，将 `dist\A-Stock-Assistant-Windows-x64.zip` 上传到 GitHub Releases。用户解压后运行 `run_portable.bat`。便携版不包含构建者的数据库或个人配置；在线行情仍需网络。
+## 开发者测试
 
-发布新版本前，先提交并推送代码，再创建对应标签。例如发布 `v1.1.0`：
-
-```powershell
-git add -A
-git status
-git commit -m "Release Si Market助手 v1.1.0"
-git push origin main
-git tag -a v1.1.0 -m "Si Market助手 v1.1.0"
-git push origin v1.1.0
-.\build_portable.ps1
-```
-
-在 GitHub Releases 创建同名版本并上传生成的 ZIP。ZIP 是发布附件，不要提交到源代码仓库。
-
-## 测试
-
-在项目根目录执行：
+在项目根目录运行：
 
 ```powershell
 .\.venv\Scripts\python.exe -m pytest tests -q
-```
-
-## 本地数据与备份
-
-SQLite 数据库、导出报告和密钥保存在本地。不要将个人数据库、`.env` 或 `.streamlit/secrets.toml` 提交到公开仓库。
-
-在项目根目录运行以下命令，可在项目同级目录创建带时间戳的备份：
-
-```powershell
-$backupPath = "..\Si Market助手-backup-$(Get-Date -Format yyyyMMdd-HHmmss)"
-robocopy . $backupPath /E /XD .git .venv __pycache__ .pytest_cache build dist
-if ($LASTEXITCODE -ge 8) { throw "备份失败，robocopy 退出代码：$LASTEXITCODE" }
-```
-
-备份包含本地数据和配置，请存放在可信位置，不要上传到公开仓库。迁移数据库前请关闭应用，并单独复制 `data\stock_assistant.db`。
-
-## 项目结构
-
-```text
-app.py             Streamlit 应用入口
-pages/             市场总览及研究页面
-src/               行情数据、分析、数据库和业务服务
-config/            应用配置
-tests/             自动化测试
-data/              本地数据库及导出目录
-requirements.txt   Python 依赖
-run_app.ps1        Windows 启动脚本
-build_portable.ps1 Windows 便携版构建脚本
 ```
