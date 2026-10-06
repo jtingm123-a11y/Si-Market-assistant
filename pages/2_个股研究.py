@@ -20,14 +20,13 @@ from src.services.stock_service import get_analysis, get_quote_source
 from src.services.market_stock_scanner import render_market_stock_scanner
 from src.utils.market_hours import get_a_share_market_status
 from src.utils.formatters import format_number
+from src.utils.market_status_view import render_market_status
 
 
 @st.fragment(run_every="30s")
 def _render_market_clock() -> None:
     current, status = get_a_share_market_status()
-    color = "green" if status == "开盘中" else "blue" if status == "盘前" else "gray"
-    st.badge(status, color=color, icon=":material/schedule:")
-    st.caption(f"北京时间 {current:%Y-%m-%d %H:%M:%S}")
+    render_market_status(status, current, "北京时间")
 
 
 def _compact_number(value: object) -> str:
@@ -56,12 +55,13 @@ def _color_change(value: object) -> str:
     return "color: #F87171; font-weight: 700" if number > 0 else "color: #34D399; font-weight: 700"
 
 
-title_col, status_col = st.columns([1, 4], vertical_alignment="center")
-with title_col:
-    st.title("A股研究")
-with status_col:
-    _render_market_clock()
-st.caption("状态按工作日常规交易时段判断；法定节假日可能与实际交易日历不同。")
+with st.container(key="a-share-page-header"):
+    title_col, status_col = st.columns([1.6, 1], vertical_alignment="center")
+    with title_col:
+        st.title("A股研究")
+    with status_col:
+        _render_market_clock()
+st.caption("交易状态按上交所交易日历与 A 股常规时段显示。")
 render_market_stock_scanner("A股")
 st.markdown(
     """<style>

@@ -50,11 +50,15 @@ def test_us_stock_can_be_added_to_market_specific_watchlist(tmp_path, monkeypatc
 @pytest.mark.parametrize(
     ("value", "expected"),
     [
-        ("2026-10-05 09:29", "盘前"),
-        ("2026-10-05 09:30", "开盘中"),
-        ("2026-10-05 11:30", "午间休市"),
-        ("2026-10-05 13:00", "开盘中"),
-        ("2026-10-05 15:00", "已收盘"),
+        ("2026-10-12 09:14", "盘前"),
+        ("2026-10-12 09:15", "集合竞价"),
+        ("2026-10-12 09:25", "待开盘"),
+        ("2026-10-12 09:30", "盘中"),
+        ("2026-10-12 11:30", "午间休市"),
+        ("2026-10-12 13:00", "盘中"),
+        ("2026-10-12 14:57", "收盘竞价"),
+        ("2026-10-12 15:00", "已收盘"),
+        ("2026-10-06 10:00", "节假日休市"),
         ("2026-10-04 10:00", "周末休市"),
     ],
 )
@@ -69,10 +73,15 @@ def test_a_share_market_status_tracks_regular_session_boundaries(value, expected
 @pytest.mark.parametrize(
     ("value", "expected"),
     [
-        ("2026-10-05 09:29", "盘前"),
-        ("2026-10-05 09:30", "开盘中"),
-        ("2026-10-05 15:59", "开盘中"),
-        ("2026-10-05 16:00", "已收盘"),
+        ("2026-10-05 03:59", "未开市"),
+        ("2026-10-05 04:00", "盘前交易"),
+        ("2026-10-05 09:29", "盘前交易"),
+        ("2026-10-05 09:30", "盘中"),
+        ("2026-10-05 15:59", "盘中"),
+        ("2026-10-05 16:00", "盘后交易"),
+        ("2026-10-05 20:00", "已收盘"),
+        ("2026-07-03 10:00", "节假日休市"),
+        ("2026-11-27 13:00", "盘后交易"),
         ("2026-10-04 10:00", "周末休市"),
     ],
 )
@@ -83,6 +92,14 @@ def test_us_market_status_tracks_eastern_session_boundaries(value, expected):
     current, status = get_us_market_status(eastern)
     assert status == expected
     assert current.tzinfo == ZoneInfo("America/New_York")
+
+
+def test_market_status_requests_calendar_update_outside_supported_dates():
+    shanghai_time = datetime(2030, 1, 7, 10, 0, tzinfo=ZoneInfo("Asia/Shanghai"))
+    new_york_time = datetime(2030, 1, 7, 10, 0, tzinfo=ZoneInfo("America/New_York"))
+
+    assert get_a_share_market_status(shanghai_time)[1] == "交易日历待更新"
+    assert get_us_market_status(new_york_time)[1] == "交易日历待更新"
 
 
 def test_crypto_scanner_returns_explainable_candidates_and_partial_errors(monkeypatch):

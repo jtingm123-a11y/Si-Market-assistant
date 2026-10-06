@@ -10,12 +10,29 @@ from src.data_sources.global_markets import fetch_global_crypto_quotes, fetch_gl
 
 st.markdown(
     """<style>
-    .market-hero {padding:1.45rem 1.6rem; margin-bottom:1.1rem; border:1px solid #27364b;
-        border-radius:18px; background:linear-gradient(120deg,#14253d,#111827 62%,#17263a);}
-    .market-eyebrow {color:#7dd3fc; font-size:.77rem; font-weight:700; letter-spacing:.14em;}
-    .market-hero h1 {margin:.42rem 0 .25rem; font-size:2rem;}
-    .market-hero p {margin:0; color:#9caec2;}
+    .market-hero {position:relative; overflow:hidden; padding:1.65rem 1.8rem; margin-bottom:1.1rem;
+        border:1px solid rgba(96,165,250,.2); border-radius:20px;
+        background:radial-gradient(ellipse at 88% 8%,rgba(56,189,248,.16),transparent 33%),
+        linear-gradient(120deg,#14253d,#111827 62%,#17263a);
+        box-shadow:0 16px 38px rgba(2,8,23,.16);}
+    .market-hero:after {content:""; position:absolute; top:-95px; right:-65px; width:310px; height:250px;
+        border:1px solid rgba(103,232,249,.1); border-radius:50%;
+        background:radial-gradient(ellipse at center,rgba(34,211,238,.13),rgba(59,130,246,.045) 44%,transparent 70%);
+        filter:blur(2px); pointer-events:none; animation:hero-glow 9s ease-in-out infinite;}
+    .market-hero > * {position:relative; z-index:1;}
+    .market-eyebrow {display:inline-flex; align-items:center; gap:.5rem; color:#93c5fd;
+        font-size:.7rem; font-weight:750; letter-spacing:.16em;}
+    .market-eyebrow:before {content:""; width:7px; height:7px; border-radius:50%; background:#60a5fa;
+        box-shadow:0 0 12px rgba(96,165,250,.75);}
+    .market-hero h1 {margin:.55rem 0 .35rem; font-size:2.05rem; letter-spacing:-.04em;}
+    .market-hero p {margin:0; color:#a7b8cc; font-size:.95rem;}
     .market-note {color:#94a3b8; font-size:.82rem;}
+    @media (max-width:720px) {
+        .market-hero {padding:1.45rem 1.25rem; margin-bottom:1.4rem; border-radius:17px;}
+        .market-hero h1 {font-size:1.8rem; line-height:1.25;}
+        .market-hero p {max-width:32rem; font-size:.93rem; line-height:1.7;}
+        .market-eyebrow {font-size:.68rem;}
+    }
     </style>""",
     unsafe_allow_html=True,
 )

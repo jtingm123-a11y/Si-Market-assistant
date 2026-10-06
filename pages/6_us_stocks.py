@@ -7,6 +7,7 @@ from src.services.market_stock_scanner import render_market_stock_scanner
 from src.services.market_chart import create_market_chart
 from src.data_sources.yahoo_market_data import fetch_yahoo_history
 from src.utils.market_hours import get_us_market_status
+from src.utils.market_status_view import render_market_status
 
 
 US_STOCKS = {
@@ -25,18 +26,16 @@ PERIODS = {"1 个月": "1mo", "3 个月": "3mo", "6 个月": "6mo", "1 年": "1y
 @st.fragment(run_every="30s")
 def _render_us_market_clock() -> None:
     current, status = get_us_market_status()
-    color = "green" if status == "开盘中" else "blue" if status == "盘前" else "gray"
-    with st.container(horizontal=True, horizontal_alignment="right", vertical_alignment="center"):
-        st.badge(status, color=color, icon=":material/schedule:")
-        st.caption(f"美东时间 {current:%Y-%m-%d %H:%M:%S}")
+    render_market_status(status, current, "美东时间")
 
 
-title_col, status_col = st.columns([1, 3], vertical_alignment="center")
-with title_col:
-    st.title("美股研究")
-with status_col:
-    _render_us_market_clock()
-st.caption("状态按美东时间常规工作日交易时段估算；美国节假日可能与实际交易日历不同。")
+with st.container(key="us-market-page-header"):
+    title_col, status_col = st.columns([1.6, 1], vertical_alignment="center")
+    with title_col:
+        st.title("美股研究")
+    with status_col:
+        _render_us_market_clock()
+st.caption("交易状态按纽约证券交易所交易日历显示，时间为美东时间。")
 st.caption("查看热门美股或输入代码查询日线行情。价格单位按交易所返回货币显示。")
 render_market_stock_scanner("美股")
 with st.form("us_stock_research_form", border=True):
