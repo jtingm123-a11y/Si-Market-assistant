@@ -197,7 +197,7 @@ def _fetch_official_listing(category: str, provider: str, url: str) -> list[dict
     return rows
 
 
-@st.cache_data(ttl=600, max_entries=1)
+@st.cache_data(ttl=600, max_entries=1, show_spinner=False)
 def fetch_market_news() -> tuple[pd.DataFrame, list[str], datetime]:
     """Fetch categorized headlines from news media and official policy sources."""
     jobs = [

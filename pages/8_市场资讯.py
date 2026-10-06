@@ -62,9 +62,15 @@ with refresh_col:
 
 if refresh_news:
     fetch_market_news.clear()
+    with st.spinner("正在获取多源资讯与政策信息..."):
+        st.session_state["market_news_result"] = fetch_market_news()
 
-with st.spinner("正在获取多源资讯与政策信息..."):
-    market_news, market_news_errors, news_checked_at = fetch_market_news()
+news_result = st.session_state.get("market_news_result")
+if news_result is None:
+    st.info("点击“刷新资讯”获取最新市场资讯。")
+    st.stop()
+
+market_news, market_news_errors, news_checked_at = news_result
 
 news_time = news_checked_at.astimezone(ZoneInfo("Asia/Shanghai"))
 st.caption(f"最近刷新（北京时间）：{news_time:%Y-%m-%d %H:%M:%S}")

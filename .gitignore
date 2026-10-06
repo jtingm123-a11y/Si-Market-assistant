@@ -9,3 +9,4 @@ data/exports/*
 data/*.db
 build/
 dist/
+/SiMarketAssistant.exe

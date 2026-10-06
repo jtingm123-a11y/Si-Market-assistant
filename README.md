@@ -11,10 +11,12 @@ Si Market助手是使用 SI 编程开发的辅助投资研究工具，目前处�
 ### 下载便携版
 
 1. 下载并解压 GitHub Releases 中的 Windows ZIP。
-2. 双击 `run_portable.bat`。
+2. 双击 `SiMarketAssistant.exe`。
 3. 浏览器打开后即可使用。退出时关闭启动窗口。
 
-便携版不需要另外安装 Python。查看在线行情和资讯需要联网。
+便携版不需要另外安装 Python。EXE 启动器需要与 ZIP 中的 `runtime` 文件夹和程序文件放在一起，不能单独从 ZIP 内运行。查看在线行情和资讯需要联网。
+
+开发时可在 PowerShell 运行 `.\run_app.ps1`；需要 EXE 启动器时，在项目目录运行 `.\build_launcher.ps1`，生成的 `SiMarketAssistant.exe` 会使用项目 `.venv` 或便携版 `runtime`。
 
 ### 从源码启动
 
@@ -30,6 +32,7 @@ Windows 上安装 Python 3.10 或更高版本，在项目文件夹打开 PowerSh
 
 - **Market**：点击“刷新数据”，查看最新市场总览。
 - **资讯**：浏览市场资讯，可按专题、来源或关键词筛选。
+- **资讯刷新**：打开资讯页后点击“刷新资讯”才会获取数据；更换专题或筛选不会重新请求新闻。
 - **A股 / 美股 / Crypto**：查询行情和走势；A股、美股页面还可扫描热门与异动标的。
 - **自选**：查看和管理保存的股票。
 - **基础分析**：生成研究报告，也可以查看、对比或删除历史报告。
@@ -53,7 +56,7 @@ git push origin v1.2.0
 .\build_portable.ps1
 ```
 
-构建完成后，将 `dist\A-Stock-Assistant-Windows-x64.zip` 上传到 GitHub Releases 的 `v1.2.0` 版本。ZIP 是发布附件，不要提交到源代码仓库。
+构建完成后，将 `dist\Si-Market-Assistant-Windows-x64.zip` 上传到 GitHub Releases 的 `v1.2.0` 版本。解压后运行 `SiMarketAssistant.exe`；EXE 是 ZIP 内的启动器，不能脱离同目录运行环境单独使用。ZIP 是发布附件，不要提交到源代码仓库。
 
 ## 运行测试
 

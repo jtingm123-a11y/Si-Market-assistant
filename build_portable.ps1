@@ -6,7 +6,7 @@ $ErrorActionPreference = "Stop"
 $projectRoot = $PSScriptRoot
 $buildRoot = Join-Path $projectRoot "build\portable"
 $distRoot = Join-Path $projectRoot "dist"
-$archivePath = Join-Path $distRoot "A-Stock-Assistant-Windows-x64.zip"
+$archivePath = Join-Path $distRoot "Si-Market-Assistant-Windows-x64.zip"
 $runtimeRoot = Join-Path $buildRoot "runtime"
 $versionParts = $PythonVersion.Split(".")
 $buildId = [Guid]::NewGuid().ToString("N")
@@ -81,8 +81,11 @@ foreach ($directory in @("pages", "src", "config")) {
     Copy-Item -LiteralPath (Join-Path $projectRoot $directory) -Destination $buildRoot -Recurse
 }
 New-Item -ItemType Directory -Path (Join-Path $buildRoot "data\exports") -Force | Out-Null
-Copy-Item -LiteralPath (Join-Path $projectRoot "run_portable.bat") -Destination $buildRoot
 Copy-Item -LiteralPath (Join-Path $projectRoot "PORTABLE_README.txt") -Destination $buildRoot
+& (Join-Path $projectRoot "build_launcher.ps1") -OutputPath (Join-Path $buildRoot "SiMarketAssistant.exe")
+if (-not (Test-Path (Join-Path $buildRoot "SiMarketAssistant.exe"))) {
+    throw "Could not build the portable launcher executable."
+}
 
 Remove-Item -LiteralPath $runtimeRequirements -Force
 Compress-Archive -Path (Join-Path $buildRoot "*") -DestinationPath $archivePath -CompressionLevel Optimal
